@@ -50,35 +50,46 @@
   </div>
 
   <script>
-    // 1. Daftarkan Service Worker menggunakan jalur relatif lingkungan repositori
+    // 1. Daftarkan Service Worker
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('sw.js').then(() => {
-        console.log("Service Worker Terdaftar!");
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js')
+          .then(() => console.log("Service Worker Terdaftar!"))
+          .catch(err => console.error("SW Gagal:", err));
       });
     }
 
-    // 2. Logika Banner Otomatis Muncul Setelah 3 Detik
+    // 2. Logika Banner Otomatis Muncul Setelah 3 Detik (Tanpa Syarat Login)
     let deferredPrompt = null; 
     const banner = document.getElementById('banner-install-irfin');
     const btnInstall = document.getElementById('btnInstallIrfin');
     const btnClose = document.getElementById('btnCloseIrfin');
 
     window.addEventListener('beforeinstallprompt', (e) => {
+      // Cegah banner bawaan browser muncul otomatis
       e.preventDefault();
+      // Simpan event instalasi
       deferredPrompt = e;
       
-      // Munculkan banner setelah 3 detik jika belum pernah ditutup pada sesi ini
+      // Jalankan hitung mundur 3 detik setelah browser siap merekam PWA
       setTimeout(() => {
+        // Cek apakah user belum pernah menutup banner ini di sesi sekarang
         if (deferredPrompt && !sessionStorage.getItem('sudahTutupBannerSilsilah')) {
-          banner.style.style.display = 'block';
+          banner.style.display = 'block'; // Diperbaiki dari kesalahan style ganda sebelumnya
         }
       }, 3000);
     });
 
+    // 3. Aksi Saat Tombol INSTAL Diklik
     btnInstall.addEventListener('click', async () => {
       if (deferredPrompt) {
+        // Munculkan prompt instalasi bawaan OS/Browser
         deferredPrompt.prompt();
+        
+        // Tangkap pilihan pengguna
         const { outcome } = await deferredPrompt.userChoice;
+        console.log(`User memilih: ${outcome}`);
+        
         if (outcome === 'accepted') {
           banner.style.display = 'none';
           sessionStorage.setItem('sudahTutupBannerSilsilah', 'true');
@@ -87,13 +98,17 @@
       }
     });
 
+    // 4. Aksi Saat Tombol Close (X) Diklik
     btnClose.addEventListener('click', () => {
       banner.style.display = 'none';
+      // Simpan memori agar tidak muncul lagi dan mengganggu kenyamanan pengguna di sesi ini
       sessionStorage.setItem('sudahTutupBannerSilsilah', 'true');
     });
 
+    // 5. Pengaman jika aplikasi berhasil diinstal lewat jalur lain (titik tiga browser)
     window.addEventListener('appinstalled', () => {
       banner.style.display = 'none';
+      deferredPrompt = null;
     });
   </script>
 </body>
